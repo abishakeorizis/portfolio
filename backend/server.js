@@ -18,7 +18,23 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 /* ──── Middleware ──── */
-app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+        // Allow any vercel.app subdomain, localhost, and the explicit FRONTEND_URL
+        const allowed = [
+            /\.vercel\.app$/,
+            /localhost/,
+        ];
+        if (process.env.FRONTEND_URL) {
+            allowed.push(new RegExp(process.env.FRONTEND_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+        }
+        const isAllowed = allowed.some((pattern) => pattern.test(origin));
+        callback(null, isAllowed || !process.env.FRONTEND_URL);
+    },
+    credentials: true,
+}));
 app.use(express.json());
 
 /* ──── Optional MongoDB Connection ──── */
