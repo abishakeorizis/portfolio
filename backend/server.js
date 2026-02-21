@@ -78,18 +78,27 @@ async function setupEmail() {
     }
     try {
         const nodemailer = await import('nodemailer');
-        const dns = await import('dns');
 
         transporter = nodemailer.default.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
             },
+            tls: { rejectUnauthorized: false },
+            connectionTimeout: 30000,
+            greetingTimeout: 30000,
+            socketTimeout: 30000,
         });
-        console.log('✅ Email transporter ready');
+
+        // Verify the transporter can actually connect
+        await transporter.verify();
+        console.log('✅ Email transporter ready and verified');
     } catch (err) {
-        console.error('⚠️ Email setup failed:', err.message);
+        console.error('❌ Email setup failed:', err.message);
+        transporter = null; // Reset so we don't try to send with broken config
     }
 }
 
