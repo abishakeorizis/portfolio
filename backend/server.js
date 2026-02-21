@@ -79,26 +79,41 @@ async function setupEmail() {
     try {
         const nodemailer = await import('nodemailer');
 
-        transporter = nodemailer.default.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            tls: { rejectUnauthorized: false },
-            connectionTimeout: 30000,
-            greetingTimeout: 30000,
-            socketTimeout: 30000,
-        });
+        // Try port 465 (SSL) first — some hosts block 587
+        const configs = [
+            { host: 'smtp.gmail.com', port: 465, secure: true, label: '465/SSL' },
+            { host: 'smtp.gmail.com', port: 587, secure: false, label: '587/STARTTLS' },
+        ];
 
-        // Verify the transporter can actually connect
-        await transporter.verify();
-        console.log('✅ Email transporter ready and verified');
+        for (const cfg of configs) {
+            try {
+                console.log(`🔄 Trying Gmail SMTP on port ${cfg.label}...`);
+                transporter = nodemailer.default.createTransport({
+                    host: cfg.host,
+                    port: cfg.port,
+                    secure: cfg.secure,
+                    auth: {
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASS,
+                    },
+                    tls: { rejectUnauthorized: false },
+                    connectionTimeout: 15000,
+                    greetingTimeout: 15000,
+                    socketTimeout: 15000,
+                });
+
+                await transporter.verify();
+                console.log(`✅ Email transporter ready on port ${cfg.label}`);
+                return; // Success — stop trying other ports
+            } catch (portErr) {
+                console.log(`⚠️ Port ${cfg.label} failed: ${portErr.message}`);
+                transporter = null;
+            }
+        }
+        console.error('❌ All SMTP ports failed – email disabled');
     } catch (err) {
         console.error('❌ Email setup failed:', err.message);
-        transporter = null; // Reset so we don't try to send with broken config
+        transporter = null;
     }
 }
 
