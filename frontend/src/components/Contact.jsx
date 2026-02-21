@@ -5,10 +5,12 @@ import { HiMail, HiUser, HiChatAlt2, HiCheckCircle, HiXCircle } from 'react-icon
 import { useTheme } from '../context/ThemeContext';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+// FormSubmit.co – free HTTP email API (no SMTP, works everywhere)
+const FORMSUBMIT_URL = 'https://formsubmit.co/ajax/abishakeorizistech@gmail.com';
 
 /**
- * Contact – glassmorphism form that submits to the backend API.
- * Shows success/error animations on submission.
+ * Contact – glassmorphism form that submits via FormSubmit.co (production)
+ * or local backend (development). Shows success/error animations.
  */
 export default function Contact() {
     const { isDark } = useTheme();
@@ -23,16 +25,31 @@ export default function Contact() {
         e.preventDefault();
         setStatus('sending');
         try {
-            await axios.post(`${BACKEND_URL}/api/contact`, form);
+            // Try FormSubmit.co first (works on all hosts, no SMTP needed)
+            await axios.post(FORMSUBMIT_URL, {
+                name: form.name,
+                email: form.email,
+                message: form.message,
+                _subject: `New Portfolio Message from ${form.name}`,
+                _template: 'table',
+            });
             setStatus('success');
             setForm({ name: '', email: '', message: '' });
             setTimeout(() => setStatus('idle'), 4000);
         } catch (err) {
-            setErrorMsg(
-                err.response?.data?.error || 'Something went wrong. Please try again.'
-            );
-            setStatus('error');
-            setTimeout(() => setStatus('idle'), 4000);
+            // Fallback to backend API (works locally)
+            try {
+                await axios.post(`${BACKEND_URL}/api/contact`, form);
+                setStatus('success');
+                setForm({ name: '', email: '', message: '' });
+                setTimeout(() => setStatus('idle'), 4000);
+            } catch (backendErr) {
+                setErrorMsg(
+                    backendErr.response?.data?.error || 'Something went wrong. Please try again.'
+                );
+                setStatus('error');
+                setTimeout(() => setStatus('idle'), 4000);
+            }
         }
     };
 
@@ -151,8 +168,8 @@ export default function Contact() {
                                 onChange={handleChange}
                                 placeholder="Your name"
                                 className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all border ${isDark
-                                        ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary-500/50'
-                                        : 'bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary-400'
+                                    ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary-500/50'
+                                    : 'bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary-400'
                                     }`}
                             />
                         </div>
@@ -181,8 +198,8 @@ export default function Contact() {
                                 onChange={handleChange}
                                 placeholder="your@email.com"
                                 className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all border ${isDark
-                                        ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary-500/50'
-                                        : 'bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary-400'
+                                    ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary-500/50'
+                                    : 'bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary-400'
                                     }`}
                             />
                         </div>
@@ -211,8 +228,8 @@ export default function Contact() {
                                 onChange={handleChange}
                                 placeholder="Tell me about your project..."
                                 className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all border resize-none ${isDark
-                                        ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary-500/50'
-                                        : 'bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary-400'
+                                    ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary-500/50'
+                                    : 'bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary-400'
                                     }`}
                             />
                         </div>
